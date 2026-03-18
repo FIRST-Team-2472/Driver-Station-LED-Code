@@ -1,4 +1,5 @@
 #include <Adafruit_NeoPixel.h>
+#include <random>
 
 #define LED_PIN 12
 
@@ -10,6 +11,8 @@ Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_BRG + NEO_KHZ800);  // Initializ
 
 bool firstTime = true;
 int mode = 0;
+int offset = 0;
+int j = 0;
 
 //colors
 uint32_t gold = strip.Color(212, 175, 55),
@@ -19,11 +22,10 @@ uint32_t gold = strip.Color(212, 175, 55),
          yellow = strip.Color(255, 255, 0),
          green = strip.Color(0, 255, 0),
          blue = strip.Color(0, 0, 255),
-         purple = strip.Color(125, 0, 255);
+         purple = strip.Color(125, 0, 255),
+         currentColor = red;
 
-//breathing stuff
 int breathingMultiplier = 1;
-uint32_t currentColor = red;
 
 // rainbow stuff
 uint32_t r = 255;
@@ -41,7 +43,7 @@ void setup() {
   strip.show();
 }
 
-void loop() { // innefficient and could probably be optimized or made in a much better way
+void loop() {  // innefficient and could probably be optimized or made in a much better way
   // Change light mode based on button press
   if (!digitalRead(input)) {
     mode++;
@@ -55,7 +57,7 @@ void loop() { // innefficient and could probably be optimized or made in a much 
   switch (mode) {
     case 0:  // Breathe between Gold and Red
       if (firstTime) {
-        Serial.println("first Time Breath between Gold and Red");
+        Serial.println("Starting Gold and Red Breathing");
         currentColor = red;
       }
       strip.fill(currentColor, 0, LED_COUNT);
@@ -76,27 +78,29 @@ void loop() { // innefficient and could probably be optimized or made in a much 
       break;
     case 1:  // Scrolling Gold and Red
       if (firstTime) {
-        Serial.println("first Time scrolling Gold and Red");
+        Serial.println("Starting scrolling Gold and Red");
         currentColor = red;
       }
 
-      // CODE FREEZES HERE (probably because I used a loop)
-      
-      
+      for (int i = 0; i < LED_COUNT / 2; i += 2) {
+        strip.fill(currentColor, i, i + 1);
+        strip.fill();
+        currentColor = currentColor == red ? currentColor = gold : currentColor = red;
+      }
+
       break;
     case 2:  // all gold
       strip.setBrightness(80);
       strip.fill(gold, 0, LED_COUNT);
-      Serial.println("gold only");
       break;
     case 3:  // all red
       strip.setBrightness(80);
       strip.fill(red, 0, LED_COUNT);
-      Serial.println("red only");
       break;
     case 4:  // Fading Raibow
       if (firstTime) {
-        Serial.println("first Time fading rainbow");
+        Serial.println("Starting fading rainbow");
+        strip.setBrightness(80);
         currentColor = strip.Color(255, 0, 0);
         r = 255;
         g = 0;
@@ -133,11 +137,169 @@ void loop() { // innefficient and could probably be optimized or made in a much 
 
       strip.setBrightness(80);
       strip.fill(strip.Color(r, g, b), 0, LED_COUNT);
-      Serial.print(r);
-      Serial.print(", ");
-      Serial.print(g);
-      Serial.print(", ");
-      Serial.println(b);
+      break;
+    case 5:  // scrolling rainbow (Might need work)
+      if (firstTime) {
+        strip.setBrightness(80);
+        Serial.println("Starting scrolling Rainbow");
+        currentColor = red;
+        state = 0;
+        offset = 0;
+        j = 0;
+      } else {
+        offset++;  // offset the red pixel to move the rainbow
+      }
+
+      r = 255;
+      g = 0;
+      b = 0;
+
+      for (int i = 0; i < LED_COUNT; i++) {
+        if (i + offset >= 46) {
+          offset = -46;  // go back to the first pixel if we are on the last one
+        }
+        currentColor = strip.Color(r, g, b);
+        strip.setPixelColor(i + offset, currentColor);
+        switch (state) {
+          case 0:  // Red to yellow (increase green)
+            g += 34;
+            if (g >= 255) {
+              state = 1;
+              g = 255;
+            }
+            break;
+          case 1:  // Yellow to green (decrease red)
+            r -= 34;
+            if (r <= 0) {
+              state = 2;
+              r = 0;
+            }
+            break;
+          case 2:  // Green to cyan (increase blue)
+            b += 34;
+            if (b >= 255) {
+              state = 3;
+              b = 255;
+            }
+
+            break;
+          case 3:  // Cyan to blue (decrease green)
+            g -= 34;
+            if (g <= 0) {
+              state = 4;
+              g = 0;
+            }
+            break;
+          case 4:  // Blue to purple (increase red)
+            r += 34;
+            if (r >= 255) {
+              state = 5;
+              r = 255;
+            }
+
+            break;
+          case 5:  // Purple to red (decrease blue)
+            b -= 34;
+            if (b <= 0) {
+              state = 0;
+              b = 0;
+            }
+            break;
+        }
+      }
+
+      break;
+    case 6:  // static rainbow
+      if (firstTime) {
+        currentColor = red;
+        strip.setBrightness(80);
+      }
+      for (int i = 0; i < LED_COUNT; i++) {
+        strip.setPixelColor(i, currentColor);
+        switch (state) {
+          case 0:  // Red to yellow (increase green)
+            g += 34;
+            if (g >= 255) {
+              state = 1;
+              g = 255;
+            }
+            break;
+          case 1:  // Yellow to green (decrease red)
+            r -= 34;
+            if (r <= 0) {
+              state = 2;
+              r = 0;
+            }
+            break;
+          case 2:  // Green to cyan (increase blue)
+            b += 34;
+            if (b >= 255) {
+              state = 3;
+              b = 255;
+            }
+
+            break;
+          case 3:  // Cyan to blue (decrease green)
+            g -= 34;
+            if (g <= 0) {
+              state = 4;
+              g = 0;
+            }
+            break;
+          case 4:  // Blue to purple (increase red)
+            r += 34;
+            if (r >= 255) {
+              state = 5;
+              r = 255;
+            }
+
+            break;
+          case 5:  // Purple to red (decrease blue)
+            b -= 34;
+            if (b <= 0) {
+              state = 0;
+              b = 0;
+            }
+            break;
+        }
+      }
+      break;
+    case 7:  // Alternate gold and red
+      strip.setBrightness(80);
+      if (firstTime) {
+        currentColor = red;
+      }
+      strip.fill(currentColor, 0, LED_COUNT);
+
+      if (currentColor == red) currentColor = gold;
+      else currentColor = red;
+      delay(750);
+      break;
+
+    case 8:  // EXTRA: 20 Random pixels with random color (red or gold)
+      // Get random number generator
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      std::uniform_int_distribution<> distr(0, 45);
+
+      // get a random pixel then set a random color
+      for (int i = 0; i < 20; i++) {
+        int pixelNumber = distr(gen);
+
+        std::uniform_int_distribution<> colorDist(1, 2);
+
+        strip.setPixelColor(pixelNumber, colorDist(gen) == 1 ? red : gold);
+      }
+
+      strip.setBrightness(80);
+
+      delay(100);
+
+      for (int i = 500; i > 0; i++) {
+        strip.setBrightness(strip.getBrightness() - 0.16);
+        delay(1);
+      }
+
       break;
   }
 
@@ -145,6 +307,6 @@ void loop() { // innefficient and could probably be optimized or made in a much 
 
 
   strip.show();
-  delay(10);
   Serial.println(mode);
+  delay(10);
 }
